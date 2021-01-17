@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>This is the title of the webpage!</title>
+    </head>
+    <body>
+        <div id="player0" class="player" style="position:relative;top:600px;left:100px;">
+            <img id="img_player0" class="img_player">
+            <div id="hand_player0" class="hand_player">
+            </div>
+        </div>
+        <div id="player1" class="player">
+            <img id="img_player1" class="img_player">
+            <div id="hand_player1" class="hand_player">
+            </div>
+        </div>
+        <div id="pioche" style="position:relative;top:200px;left:200px;">
+            
+        </div>
+        <div id="defausse" style="position:relative;top:400px;left:250px;width:85px;height:150px;border: 4px dotted blue;">
+        </div>
+        <div id="div_button">
+            <button id="start_button">Start</button>
+            <button id="next_button"  style="display:none">Next</button>
+        </div>
+        <p id="log"></p>
+    </body>
+    <script>
+        let button_start = document.querySelector('#start_button');
+        let log = document.querySelector('#log');
+        button_start.addEventListener('mouseup', startGame);
+        function startGame(e)
+        {
+            if (typeof e === 'object')
+            {
+                switch (e.button)
+                {
+                    case 0:
+                        let game = new Game(2);
+                        let p0 = new Player(0);
+                        let p1 = new Player(1);
+                        game.add_player(p0);
+                        console.log(game.players[1]);
+                        game.begin_game();
+                        break;
+                    default:
+                        log.textContent = `Unknown button code: ${e.button}`;
+                }
+            }
+        }
+        function getStyle(el,styleProp)
+        {
+            var x = document.getElementById(el);
+            if (window.getComputedStyle)
+            {
+                var y = document.defaultView.getComputedStyle(x,null).getPropertyValue(styleProp); 
+            }
+            else if (x.currentStyle)
+            {
+                var y = x.currentStyle[styleProp];
+            }
+            return y;
+        }
+        class Player
+        {
+            constructor(userid)
+            {
+                this.userid = userid;
+                this.cards = [];
+            }
+            add_card(card)
+            {
+                card.set_index(this.cards.length);
+                this.cards.push(card);
+                let src = document.getElementById("hand_player"+this.userid);
+                let img = document.createElement("img");
+                img.setAttribute("id", "h+"+this.userid+"+"+this.cards[this.cards.length - 1].number+"+"+this.cards[this.cards.length - 1].color);
+                img.style.position = "absolute";
+                img.style.height = "150px";
+                img.style.left = ""+60*(this.cards.length - 1)+"px";
+                img.style.zIndex = 1;
+                img.src = this.cards[this.cards.length - 1].img_src;
+                src.appendChild(img);
+            }
+            play_card(card)
+            {
+                this.cards.splice(card.index_in_hand, 1);
+                card.set_index(-1);
+            }
+            get_plus(howmany, pioche)
+            {
+                for (let i = 0; i < howmany; i++)
+                {
+                    let card = pioche.get_first_card();
+                    pioche.remove_card(card);
+                    add_card(card);
+                }
+            }
+        }
+        class Game
+        {
+            constructor(nbplayer)
+            {
+                this.nbplayer = nbplayer;
+                this.players = [];
+                this.pioche = new Pioche();
+                this.defausse = new Defausse(pioche);
+            }
+            add_player(player)
+            {
+                this.players.push(player);
+            }
+            begin_game()
+            {
+                this.pioche.shuffle(this.pioche.cards);
+                this.defausse.add_to_pile(this.pioche, this.pioche.get_first_card());
+                
+                for (let i = 0; i < this.players.length; i++)
+                {
+                    for (let j = 0; j < 7; j++)
+                    {
+                        let card = this.pioche.get_first_card();
+                        this.pioche.remove_card(card);
+                        this.players[i].add_card(card);
+                    }
+                }
+                console.log("card in pioche "+this.pioche.cards.length);
+                console.log("card in defausse "+this.defausse.cards.length);
+            }
+        }
+        class Pioche
+        {
+            constructor()
+            {
+                this.nbcard = 108;
+                this.cards = [];
+
+                for (let i = 0; i < 15; i++)
+                {
+                    let j = 0;
+                    if (i == 0)
+                    {
+                        while (j < 4)
+                        {
+                            this.cards.push(new Card(j ,i));
+                            j++;
+                        }
+                    }
+                    else if (i > 0 && i <= 9)
+                    {
+                        while (j < 4)
+                        {
+                            this.cards.push(new Card(j ,i));
+                            this.cards.push(new Card(j ,i));
+                            j++;
+                        }
+                    }
+                    else if (i == 10 || i == 12)
+                    {
+                        while (j < 4)
+                        {
+                            this.cards.push(new Card(4 ,i));
+                            j++;
+                        }
+                    }
+                    else if (i == 11 || i == 13 || i == 14)
+                    {
+                        while (j < 4)
+                        {
+                            this.cards.push(new Card(j ,i));
+                            this.cards.push(new Card(j ,i));
+                            j++;
+                        }
+                    }
+                }
+            }
+            fill_pioche() //visible part anyway
+            {
+                let src = document.getElementById("pioche");
+                for (let i = 0; i < 108; i++)
+                {
+                    let img = document.createElement("img");
+                    img.setAttribute("id", "p+"+this.cards[i].number+"+"+this.cards[i].color);
+                    img.style.position = "absolute";
+                    img.style.height = "150px";
+                    img.style.left = ""+2*i+"px";
+                    img.style.zIndex = i;
+                    img.src = this.cards[i].background_card;
+                    src.appendChild(img);
+                }
+            }
+            shuffle(array) //knuth-shuffle github
+            {
+                var currentIndex = array.length, temporaryValue, randomIndex;
+                // While there remain elements to shuffle...
+                while (0 !== currentIndex)
+                {
+                    // Pick a remaining element...
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex -= 1;
+                    // And swap it with the current element.
+                    temporaryValue = array[currentIndex];
+                    array[currentIndex] = array[randomIndex];
+                    array[randomIndex] = temporaryValue;
+                }
+                this.fill_pioche();
+            }
+            get_first_card()
+            {
+                return (this.cards[this.cards.length - 1]);
+            }
+            remove_card(card)
+            {
+                this.cards.splice(-1, 1);
+            }
+        }
+        class Card
+        {
+            constructor(color, number)
+            {
+                let colors = new Colors();
+                this.color = colors.get_color(color);
+                this.number = number;
+                this.img_src = '../imgs/cards/'+number+'+'+this.color+'.png';
+                this.visible = false;
+                this.inpioche = true;
+                this.indefausse = false;
+                this.background_card = '../imgs/cards/background.png';
+                this.index_in_hand = -1;
+            }
+            get_img_url(color, number)
+            {
+                return (this.img_url);
+            }
+            set_index(index)
+            {
+                this.index_in_hand = index;
+            }
+        }
+        class Defausse
+        {
+            constructor(c_pioche)
+            {
+                this.pioche = c_pioche;
+                this.cards = [];
+            }
+            add_to_pile(pioche, card)
+            {
+                pioche.remove_card(card);
+                card.inpioche = false;
+                card.indefausse = true;
+                this.cards.push(card);
+                let src = document.getElementById("defausse");
+                let img = document.createElement("img");
+                img.setAttribute("id", "d+"+card.number+"+"+card.color);
+                img.style.position = "absolute";
+                img.style.height = "150px";
+                img.style.zIndex = this.cards.length;
+                img.src = card.img_src;
+                src.appendChild(img);
+            }
+        }
+        class Colors
+        {
+            constructor()
+            {
+                this.colors = ['blue', 'green', 'red', 'yellow', 'black'];
+            }
+            get_color(n)
+            {
+                return (this.colors[n]);
+            }
+        }
+    </script>
+</html>
