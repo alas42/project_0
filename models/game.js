@@ -4,8 +4,8 @@ class Game
     {
         this.nbplayer = nbplayer;
         this.players = [];
-        this.pioche = new Pioche();
-        this.defausse = new Defausse(pioche);
+        this.deck = new Deck();
+        this.discard = new Discard(this.deck);
     }
     add_player(player)
     {
@@ -13,19 +13,19 @@ class Game
     }
     begin_game()
     {
-        this.pioche.shuffle(this.pioche.cards);
-        this.defausse.add_to_pile(this.pioche, this.pioche.get_first_card());
+        this.deck.shuffle(this.deck.cards);
+        this.discard.add_to_deck(this.deck, this.deck.get_first_card());
         
         for (let i = 0; i < this.players.length; i++)
         {
             for (let j = 0; j < 7; j++)
             {
-                let card = this.pioche.get_first_card();
-                this.pioche.remove_card(card);
+                let card = this.deck.get_first_card();
+                this.deck.remove_card(card);
                 this.players[i].add_card(card);
             }
         }
-        console.log("card in pioche "+this.pioche.cards.length);
-        console.log("card in defausse "+this.defausse.cards.length);
+        console.log("card in deck "+this.deck.cards.length);
+        console.log("card in discard "+this.discard.cards.length);
     }
 }

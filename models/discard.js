@@ -1,17 +1,17 @@
-class Defausse
+class Discard
 {
-    constructor(c_pioche)
+    constructor(c_deck)
     {
-        this.pioche = c_pioche;
+        this.deck = c_deck;
         this.cards = [];
     }
-    add_to_pile(pioche, card)
+    add_to_deck(deck, card)
     {
-        pioche.remove_card(card);
-        card.inpioche = false;
-        card.indefausse = true;
+        deck.remove_card(card);
+        card.inDeck = false;
+        card.inDiscard = true;
         this.cards.push(card);
-        let src = document.getElementById("defausse");
+        let src = document.getElementById("discard");
         let img = document.createElement("img");
         img.setAttribute("id", "d+"+card.number+"+"+card.color);
         img.style.position = "absolute";
