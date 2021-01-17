@@ -1,4 +1,4 @@
-class Cardpingouin
+class Card
 {
     constructor(color, number)
     {
