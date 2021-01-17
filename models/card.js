@@ -1,4 +1,4 @@
-class Card
+class Quardeuh
 {
     constructor(color, number)
     {
