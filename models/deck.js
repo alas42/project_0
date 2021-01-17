@@ -1,4 +1,4 @@
-class Pioche
+class Deck
 {
     constructor()
     {
@@ -44,9 +44,9 @@ class Pioche
             }
         }
     }
-    fill_pioche() //visible part anyway
+    fill_deck() //visible part anyway
     {
-        let src = document.getElementById("pioche");
+        let src = document.getElementById("deck");
         for (let i = 0; i < 108; i++)
         {
             let img = document.createElement("img");
@@ -73,7 +73,7 @@ class Pioche
             array[currentIndex] = array[randomIndex];
             array[randomIndex] = temporaryValue;
         }
-        this.fill_pioche();
+        this.fill_deck();
     }
     get_first_card()
     {

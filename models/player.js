@@ -24,12 +24,12 @@ class Player
         this.cards.splice(card.index_in_hand, 1);
         card.set_index(-1);
     }
-    get_plus(howmany, pioche)
+    get_plus(howmany, deck)
     {
         for (let i = 0; i < howmany; i++)
         {
-            let card = pioche.get_first_card();
-            pioche.remove_card(card);
+            let card = deck.get_first_card();
+            deck.remove_card(card);
             add_card(card);
         }
     }

@@ -7,8 +7,8 @@ class Card
         this.number = number;
         this.img_src = '../imgs/cards/'+number+'+'+this.color+'.png';
         this.visible = false;
-        this.inpioche = true;
-        this.indefausse = false;
+        this.inDeck = true;
+        this.inDiscard = false;
         this.background_card = '../imgs/cards/background.png';
         this.index_in_hand = -1;
     }
