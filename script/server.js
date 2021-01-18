@@ -48,7 +48,7 @@ const realtime = Ably.Realtime({
     return "id-" + totalPlayers + Math.random().toString(36).substr(2, 16);
   };
   
-  app.use(express.static("js"));
+  app.use(express.static("public"));
   
   app.get("/auth", (request, response) => {
     const tokenParams = { clientId: uniqueId() };
@@ -77,7 +77,7 @@ const realtime = Ably.Realtime({
     }
   });
   
-  app.get("/gameplay", (request, response) => {
+  app.get("/game", (request, response) => {
     response.sendFile(path.join(__dirname, '..', 'views','index.html'));
   });
   
