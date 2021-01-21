@@ -1,46 +1,33 @@
-const envConfig = require("dotenv").config();
 const express = require("express");
 const Ably = require("ably");
 const app = express();
 const ABLY_API_KEY = "m9LXbg.ebIsdg:tstVGTyoZ214UP0a";
 
-const CANVAS_HEIGHT = 750;
-const CANVAS_WIDTH = 1400;
-const SHIP_PLATFORM = 718;
-const PLAYER_VERTICAL_INCREMENT = 20;
-const PLAYER_VERTICAL_MOVEMENT_UPDATE_INTERVAL = 1000;
-const PLAYER_SCORE_INCREMENT = 5;
-const P2_WORLD_TIME_STEP = 1 / 16;
-const MIN_PLAYERS_TO_START_GAME = 3;
+/* const CANVAS_HEIGHT = 750;
+const CANVAS_WIDTH = 1400; */
+const MIN_PLAYERS_TO_START_GAME = 2;
+const MAX_PLAYERS_TO_START_GAME = 5;
 const GAME_TICKER_MS = 100;
 
 let peopleAccessingTheWebsite = 0;
 let players = {};
 let playerChannels = {};
-let shipX = Math.floor((Math.random() * 1370 + 30) * 1000) / 1000;
-let shipY = SHIP_PLATFORM;
-let avatarColors = ["green", "cyan", "yellow"];
-let avatarTypes = ["A", "B", "C"];
 let gameOn = false;
 let alivePlayers = 0;
 let totalPlayers = 0;
 let gameRoom;
 let deadPlayerCh;
 let gameTickerOn = false;
-let bulletTimer = 0;
-let shipBody;
-let world;
-let shipVelocityTimer = 0;
-let killerBulletId = "";
-let copyOfShipBody = {
-  position: "",
-  velocity: "",
-};
 let path = require('path');
+var PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log("Your app is listening on port " + PORT);
+});
 
 const realtime = Ably.Realtime({
     key: ABLY_API_KEY,
-    echoMessages: false,
+    echoMessages: false
   });
   
   //create a uniqueId to assign to clients on auth
@@ -70,53 +57,44 @@ const realtime = Ably.Realtime({
       "Access-Control-Allow-Headers",
       "Origin, X-Requested-With, Content-Type, Accept"
     );
-    if (++peopleAccessingTheWebsite > MIN_PLAYERS_TO_START_GAME) {
+    if (++peopleAccessingTheWebsite > MAX_PLAYERS_TO_START_GAME) {
       response.sendFile(path.join(__dirname, '..', 'views', 'gameRoomFull.html'));
     } else {
       response.sendFile(path.join(__dirname, '..', 'views', 'intro.html'));
     }
   });
   
-  app.get("/game", (request, response) => {
+  app.get("/game-room", (request, response) => {
     response.sendFile(path.join(__dirname, '..', 'views','index.html'));
-  });
-  
-  const listener = app.listen(process.env.PORT, () => {
-    console.log("Your app is listening on port " + listener.address().port);
   });
 
   realtime.connection.once("connected", () => {
+    console.log("connected");
     gameRoom = realtime.channels.get("game-room");
     deadPlayerCh = realtime.channels.get("dead-player");
     gameRoom.presence.subscribe("enter", (player) => {
         let newPlayerId;
-        let newPlayerData;
         alivePlayers++;
         totalPlayers++;
-      
+        console.log(totalPlayers);
         if (totalPlayers === 1) {
           gameTickerOn = true;
           startGameDataTicker();
         }
-      
         newPlayerId = player.clientId;
         playerChannels[newPlayerId] = realtime.channels.get(
           "clientChannel-" + player.clientId
         );
-      
         newPlayerObject = {
           id: newPlayerId,
-          x: Math.floor((Math.random() * 1370 + 30) * 1000) / 1000,
-          y: 20,
-          invaderAvatarType: avatarTypes[randomAvatarSelector()],
-          invaderAvatarColor: avatarColors[randomAvatarSelector()],
           score: 0,
           nickname: player.data,
           isAlive: true,
         };
         players[newPlayerId] = newPlayerObject;
+        console.log(players[newPlayerId]);
         if (totalPlayers === MIN_PLAYERS_TO_START_GAME) {
-          startShipAndBullets();
+          startGame();
         }
         subscribeToPlayerInput(playerChannels[newPlayerId], newPlayerId);
       });
@@ -131,7 +109,6 @@ const realtime = Ably.Realtime({
       });
       deadPlayerCh.subscribe("dead-notif", (msg) => {
         players[msg.data.deadPlayerId].isAlive = false;
-        killerBulletId = msg.data.killerBulletId;
         alivePlayers--;
         if (alivePlayers == 0) {
           setTimeout(() => {
@@ -146,26 +123,10 @@ const realtime = Ably.Realtime({
       if (!gameTickerOn) {
         clearInterval(tickInterval);
       } else {
-        bulletOrBlank = "";
-        bulletTimer += GAME_TICKER_MS;
-        if (bulletTimer >= GAME_TICKER_MS * 5) {
-          bulletTimer = 0;
-          bulletOrBlank = {
-            y: SHIP_PLATFORM,
-            id:
-              "bulletId-" + Math.floor((Math.random() * 2000 + 50) * 1000) / 1000,
-          };
-        }
-        if (shipBody) {
-          copyOfShipBody = shipBody;
-        }
         gameRoom.publish("game-state", {
           players: players,
           playerCount: totalPlayers,
-          shipBody: copyOfShipBody.position,
-          bulletOrBlank: bulletOrBlank,
-          gameOn: gameOn,
-          killerBullet: killerBulletId,
+          gameOn: gameOn
         });
       }
     }, GAME_TICKER_MS);
@@ -173,36 +134,7 @@ const realtime = Ably.Realtime({
 
   function subscribeToPlayerInput(channelInstance, playerId) {
     channelInstance.subscribe("pos", (msg) => {
-      if (msg.data.keyPressed == "left") {
-        if (players[playerId].x - 20 < 20) {
-          players[playerId].x = 20;
-        } else {
-          players[playerId].x -= 20;
-        }
-      } else if (msg.data.keyPressed == "right") {
-        if (players[playerId].x + 20 > 1380) {
-          players[playerId].x = 1380;
-        } else {
-          players[playerId].x += 20;
-        }
-      }
     });
-  }
-
-  function startDownwardMovement(playerId) {
-    let interval = setInterval(() => {
-      if (players[playerId] && players[playerId].isAlive) {
-        players[playerId].y += PLAYER_VERTICAL_INCREMENT;
-        players[playerId].score += PLAYER_SCORE_INCREMENT;
-  
-        if (players[playerId].y > SHIP_PLATFORM) {
-          finishGame(playerId);
-          clearInterval(interval);
-        }
-      } else {
-        clearInterval(interval);
-      }
-    }, PLAYER_VERTICAL_MOVEMENT_UPDATE_INTERVAL);
   }
 
   function finishGame(playerId) {
@@ -258,50 +190,8 @@ const realtime = Ably.Realtime({
     }
   }
 
-  function startShipAndBullets() {
+  function startGame() {
     gameOn = true;
-  
-    world = new p2.World({
-      gravity: [0, -9.82],
-    });
-    shipBody = new p2.Body({
-      position: [shipX, shipY],
-      velocity: [calcRandomVelocity(), 0],
-    });
-    world.addBody(shipBody);
-    startMovingPhysicsWorld();
-  
-    for (let playerId in players) {
-      startDownwardMovement(playerId);
-    }
+    console.log(gameOn);
   }
 
-  function startMovingPhysicsWorld() {
-    let p2WorldInterval = setInterval(function () {
-      if (!gameOn) {
-        clearInterval(p2WorldInterval);
-      } else {
-        // updates velocity every 5 seconds
-        if (++shipVelocityTimer >= 80) {
-          shipVelocityTimer = 0;
-          shipBody.velocity[0] = calcRandomVelocity();
-        }
-        world.step(P2_WORLD_TIME_STEP);
-        if (shipBody.position[0] > 1400 && shipBody.velocity[0] > 0) {
-          shipBody.position[0] = 0;
-        } else if (shipBody.position[0] < 0 && shipBody.velocity[0] < 0) {
-          shipBody.position[0] = 1400;
-        }
-      }
-    }, 1000 * P2_WORLD_TIME_STEP);
-  }
-
-  function calcRandomVelocity() {
-    let randomShipXVelocity = Math.floor(Math.random() * 200) + 20;
-    randomShipXVelocity *= Math.floor(Math.random() * 2) == 1 ? 1 : -1;
-    return randomShipXVelocity;
-  }
-
-  function randomAvatarSelector() {
-    return Math.floor(Math.random() * 3);
-  }
