@@ -5,10 +5,6 @@ let myChannel;
 let gameOn = false;
 let players = {};
 let totalPlayers = 0;
-let latestShipPosition;
-let bulletThatShotMe;
-let bulletThatShotSomeone;
-let bulletOutOfBounds = "";
 let amIalive = false;
 let game;
 
@@ -26,3 +22,4 @@ const realtime = Ably.Realtime({
     myChannel = realtime.channels.get("clientChannel-" + myClientId);
     gameRoom.presence.enter(myNickname);
   });
+
